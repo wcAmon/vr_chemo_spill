@@ -1,0 +1,224 @@
+{
+  "items": [
+    {
+      "id": "chemo-spill-kit-1",
+      "kind": "chemo-spill-kit",
+      "status": "placed",
+      "position": [
+        4.212309630801834,
+        0.7599999816119671,
+        1.7628264067017163
+      ],
+      "rotationY": 1.5707963267948941
+    },
+    {
+      "id": "chemo-iv-bag-1",
+      "kind": "chemo-iv-bag",
+      "status": "placed",
+      "position": [
+        -4.386688098907471,
+        1.5396139919061154,
+        -4.356981337657969
+      ],
+      "rotationY": 1.5707963267948966
+    },
+    {
+      "id": "cytotoxic-waste-bin-1",
+      "kind": "cytotoxic-waste-bin",
+      "status": "placed",
+      "position": [
+        3.647054860026887,
+        0.759999978542328,
+        -2.744267722805778
+      ],
+      "rotationY": 1.5707963267948963
+    },
+    {
+      "id": "spill-warning-sign-1",
+      "kind": "spill-warning-sign",
+      "status": "placed",
+      "position": [
+        -3.6334265334377336,
+        0.7579273331274892,
+        0.6746076128516281
+      ],
+      "rotationY": 3.1415926535897936
+    },
+    {
+      "id": "ppe-set-1",
+      "kind": "ppe-set",
+      "status": "placed",
+      "position": [
+        -3.1913880868709144,
+        0.9600000075995923,
+        4.418364129947033
+      ],
+      "rotationY": 0
+    },
+    {
+      "id": "cytotoxic-waste-bag-1",
+      "kind": "cytotoxic-waste-bag",
+      "status": "placed",
+      "position": [
+        4.435175613205912,
+        0.7599999684095383,
+        -2.3560348567022076
+      ],
+      "rotationY": 1.5707963267948963
+    },
+    {
+      "id": "work-table-1",
+      "kind": "work-table",
+      "status": "placed",
+      "position": [
+        -4.479459495769786,
+        -1.3858079850326277e-08,
+        -3.319318148901747
+      ],
+      "rotationY": 1.5707963267948963
+    },
+    {
+      "id": "supply-table-1",
+      "kind": "supply-table",
+      "status": "placed",
+      "position": [
+        -4.122761231707059,
+        -1.3858079628281672e-08,
+        0.9728960188205772
+      ],
+      "rotationY": 1.5707963267948963
+    },
+    {
+      "id": "iv-stand-1",
+      "kind": "iv-stand",
+      "status": "placed",
+      "position": [
+        -4.101687867861542,
+        -1.1175872657864794e-09,
+        -4.36270892964949
+      ],
+      "rotationY": 0
+    },
+    {
+      "id": "supply-cabinet-1",
+      "kind": "supply-cabinet",
+      "status": "placed",
+      "position": [
+        -3.008442623440712,
+        1.1175870728852288e-08,
+        4.451750895342633
+      ],
+      "rotationY": 1.5707963267948963
+    },
+    {
+      "id": "training-console-1",
+      "kind": "training-console",
+      "status": "placed",
+      "position": [
+        -0.1326978975020894,
+        1.2367963819759353e-08,
+        -0.5130447436401075
+      ],
+      "rotationY": 0
+    },
+    {
+      "id": "notice-station-1-1",
+      "kind": "notice-station-1",
+      "status": "placed",
+      "position": [
+        -4.915000190734863,
+        1.7413639410569075,
+        -3.195380612704277
+      ],
+      "rotationY": -1.5707963267948966
+    },
+    {
+      "id": "notice-station-2-1",
+      "kind": "notice-station-2",
+      "status": "placed",
+      "position": [
+        -4.915000190734863,
+        1.8615095036463853,
+        1.250143314058453
+      ],
+      "rotationY": -1.5707963267948966
+    },
+    {
+      "id": "notice-station-3-1",
+      "kind": "notice-station-3",
+      "status": "placed",
+      "position": [
+        -2.9930317471455763,
+        1.8486322989948236,
+        4.9150001907348635
+      ],
+      "rotationY": 0
+    },
+    {
+      "id": "notice-station-4-1",
+      "kind": "notice-station-4",
+      "status": "placed",
+      "position": [
+        4.9150001907348635,
+        1.7475208887525495,
+        2.2105548872547733
+      ],
+      "rotationY": 1.5707963267948966
+    },
+    {
+      "id": "notice-station-5-1",
+      "kind": "notice-station-5",
+      "status": "placed",
+      "position": [
+        4.9150001907348635,
+        1.740421800469223,
+        -2.1461897102801792
+      ],
+      "rotationY": 1.5707963267948966
+    },
+    {
+      "id": "megaphone-1",
+      "kind": "megaphone",
+      "status": "placed",
+      "position": [
+        -4.505579968222202,
+        0.7599999749660492,
+        -3.0875551020064482
+      ],
+      "rotationY": 0
+    },
+    {
+      "id": "supply-table-2",
+      "kind": "supply-table",
+      "status": "placed",
+      "position": [
+        4.118093716820963,
+        -1.3858080072370882e-08,
+        2.3408687673745567
+      ],
+      "rotationY": 3.1415926535897936
+    },
+    {
+      "id": "supply-table-3",
+      "kind": "supply-table",
+      "status": "placed",
+      "position": [
+        4.099495978123068,
+        -1.3858080072370882e-08,
+        -2.130819941630867
+      ],
+      "rotationY": 3.1415926535897936
+    },
+    {
+      "id": "filled-waste-bag-1",
+      "kind": "filled-waste-bag",
+      "status": "placed",
+      "position": [
+        3.770495359741783,
+        0.7599999809265137,
+        -1.6309687256804835
+      ],
+      "rotationY": 1.5707963267948963
+    }
+  ]
+}

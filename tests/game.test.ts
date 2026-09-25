@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';
+import world from '../src/world.json';
+import {GameDocument,type WorldState} from '../src/state';
+import {PublishedGame,publishedHint,canReadPublished,padSpawnPosition} from '../src/published-game';
+import {Mission} from '../src/mission';
+const original=structuredClone(world) as WorldState,doc=new GameDocument(structuredClone(original)),game=new PublishedGame(doc);
+const item=(kind:string)=>doc.state.items.find(i=>i.kind===kind)!;
+assert.equal(game.validate(),null);assert(!game.take(item('megaphone').id,item('megaphone').position).ok);assert(game.use(item('training-console').id,item('training-console').position).ok);
+assert(!game.take(item('ppe-set').id,item('ppe-set').position).ok);assert(!game.take(item('megaphone').id,[99,0,0]).ok);
+assert(game.take(item('megaphone').id,item('megaphone').position).ok);assert(game.use(item('megaphone').id,item('megaphone').position).ok);assert.equal(game.mission.stage,2);
+assert(!game.use(item('megaphone').id,[0,0,0]).ok);game.broadcastFinished=true;assert.match(publishedHint(game,null),/放下麥克風/);assert(game.use(item('megaphone').id,[0,0,0]).ok);assert.equal(Boolean(doc.held),false);
+assert(game.take(item('spill-warning-sign').id,item('spill-warning-sign').position).ok);assert(!game.place([9,0,9],[9,0,9]).ok);assert(game.place(game.signTarget,game.signTarget).ok);
+assert(game.take(item('ppe-set').id,item('ppe-set').position).ok);assert(game.use(item('ppe-set').id,item('ppe-set').position).ok);assert(game.gloves);
+const kit=item('chemo-spill-kit');assert(game.use(kit.id,[kit.position[0]-1,0,kit.position[2]]).ok);assert(doc.item(game.padId!)!.position[0]<kit.position[0]);assert(!game.use(kit.id,kit.position).ok);
+assert(game.take(game.padId!,doc.item(game.padId!)!.position).ok);assert(!game.use(game.padId!,game.cleanTarget).ok);assert(!game.place([0,0,0],game.cleanTarget).ok);assert(game.place(game.cleanTarget,game.cleanTarget).ok);
+assert(game.take(item('filled-waste-bag').id,item('filled-waste-bag').position).ok);assert(game.place(game.binTarget,game.binTarget).ok);assert.equal(game.mission.stage,6);
+assert.deepEqual(world,original);assert(!canReadPublished('supply-table'));assert(!publishedHint(game,item('supply-table').id).includes('F'));assert(canReadPublished('notice-station-1'));
+for(const p of [[0,0,1],[0,0,-1],[1,0,0],[-1,0,0]] as [number,number,number][]){const s=padSpawnPosition([0,.76,0],p);assert(s[0]*p[0]+s[2]*p[2]>0);}
+let now=100;const mission=new Mission(()=>now);mission.start();now=200;mission.pause(true);now=500;assert.equal(mission.elapsed,100);mission.pause(false);for(let i=1;i<=5;i++)assert(mission.complete(i));now=900;assert.equal(mission.elapsed,100);mission.reset();assert.equal(mission.elapsed,0);
+console.log('PASS ordered five stations, explicit microphone return, proximity, placement, furniture, pause/reset, original layout immutability');
