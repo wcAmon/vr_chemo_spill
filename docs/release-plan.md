@@ -9,6 +9,6 @@ Architecture: bundle procedural meshes, authored world layout, animations, CSS, 
 - [x] Inline all required resources; verify no external requests when platform infrastructure is blocked. Test strict hosted-page CSP.
 - [x] Document object requirements, coordinates, original/active forms, controls, scene annotations, restart behavior and design workflow. No private authoring system or history.
 - [x] Audit tracked sources and artifact for credentials, personal paths, private hosts, editor endpoints and unexpected runtime networking. Include required third-party licenses.
-- [ ] Create a new public GitHub repository and new public pages on both teaching platforms. Verify source readback and browser startup on both published URLs.
+- [x] Create a new public GitHub repository and new public pages on both teaching platforms. Verify source readback and browser startup on both published URLs.
 
 Review focus: missing WASM or asset paths, platform CSP, menu pointer capture, order/target checks, reset cleanup and accidental inclusion of private infrastructure.

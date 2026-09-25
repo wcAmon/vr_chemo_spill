@@ -2,6 +2,13 @@
 
 只含玩家遊玩狀態的獨立 3D 教學遊戲。先自由參觀，對準中央啟動台按 **F** 開始計時，依序完成通報、警示、防護、清理與廢棄物處理。
 
+## 公開遊玩連結
+
+- [MiniMentor](https://pages.minimentor.coach/p/OTtCxXF9N7nOVAXk)
+- [tmuh.ai](https://tmuh.ai/u/greenamon/vr-chemo-spill/)
+- [GitHub 原始碼](https://github.com/wcAmon/vr_chemo_spill)
+- [下載單檔遊戲與設計文件](https://github.com/wcAmon/vr_chemo_spill/releases/tag/v1.0.0)
+
 ## 遊玩
 
 下載根目錄 **index.html** 並用現代瀏覽器開啟，或使用發布連結。HTML 內含 JavaScript、CSS、程序化模型、動作資料、場景布局及 Havok WebAssembly，不需要遊戲伺服器、登入或額外素材下載。語音使用瀏覽器語音功能；若裝置沒有可用聲音，仍可依文字提示遊玩。體感功能需瀏覽器與裝置允許。
