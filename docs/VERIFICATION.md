@@ -18,3 +18,12 @@ Havok 1.3.14 uses a CSP-compatible loader. Previous 1.3.10 used a dynamic Functi
 ## Limits
 
 Voice-end events are simulated in the full-route automation; actual audible output depends on browser/OS speech voices. Real phones, gyroscope permission prompts, headset WebXR and accessibility with a screen reader have not been device-tested. Published platform pages may load their own platform scripts independently of the self-contained game.
+
+## 2026-09-26: direct interaction and camera controls
+
+- Desktop and Chromium touch emulation completed all five stations by directly clicking/tapping scene objects and placement targets.
+- Desktop hover does not rotate the camera; right-button drag rotates it without pointer lock; contextual left-button icon is rendered. F remains a center-ray fallback.
+- Two simultaneous touch pointers drive movement and the camera stick; knob position changes visibly; release stops camera rotation. Canvas drag and cancelled touch do not start the console.
+- TypeScript, mission rules, 30/60/120 Hz physics tests, single-file build and offline CSP startup passed.
+- Portrait 430x932 and landscape 844x390 controls inspected; landscape buttons/sticks stay within viewport and do not overlap.
+- No physical iOS/Android device or sensor validation is claimed.

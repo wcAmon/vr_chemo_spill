@@ -1,23 +1,23 @@
 # 化療藥物潑灑處理・五站任務
 
-只含玩家遊玩狀態的獨立 3D 教學遊戲。先自由參觀，對準中央啟動台按 **F** 開始計時，依序完成通報、警示、防護、清理與廢棄物處理。
+只含玩家遊玩狀態的獨立 3D 教學遊戲。先自由參觀，點選中央啟動台 開始計時，依序完成通報、警示、防護、清理與廢棄物處理。
 
 ## 公開遊玩連結
 
 - [MiniMentor](https://pages.minimentor.coach/p/OTtCxXF9N7nOVAXk)
 - [tmuh.ai](https://tmuh.ai/u/greenamon/vr-chemo-spill/)
 - [GitHub 原始碼](https://github.com/wcAmon/vr_chemo_spill)
-- [下載單檔遊戲與設計文件](https://github.com/wcAmon/vr_chemo_spill/releases/tag/v1.0.0)
+- [下載單檔遊戲與設計文件](https://github.com/wcAmon/vr_chemo_spill/releases/latest)
 
 ## 遊玩
 
 下載根目錄 **index.html** 並用現代瀏覽器開啟，或使用發布連結。HTML 內含 JavaScript、CSS、程序化模型、動作資料、場景布局及 Havok WebAssembly，不需要遊戲伺服器、登入或額外素材下載。語音使用瀏覽器語音功能；若裝置沒有可用聲音，仍可依文字提示遊玩。體感功能需瀏覽器與裝置允許。
 
-- WASD：移動；滑鼠：環視。
-- F：拿起、開啟、閱讀、按啟動台開始。
+- WASD：移動；按住滑鼠右鍵拖曳：環視。游標移到物件會顯示名稱、左鍵圖示及操作。
+- 左鍵點物件：拿起、開啟、閱讀或按啟動台開始。F 保留中央準星操作。
 - 左鍵：使用或放置手持物件；廣播完放下麥克風。
 - Esc：暫停／繼續；選單可重新開始。
-- 手機：搖桿移動、滑動環視、右側兩個動作按鈕。
+- 手機：左搖桿移動、右搖桿環視；保留滑動環視。輕點物件拿取／開啟，持物時點標誌放置，或使用右側動作按鈕。
 
 ## 檔案
 
@@ -43,6 +43,6 @@ npm run build
 
 `npm run dev` 後開啟 `/app.html`。`app.html` 是開發入口，`index.html` 是完成品；請修改 src 後重建，不要手改 bundle。
 
-瀏覽器測試使用 Playwright（可自行安裝於開發環境）；啟動開發伺服器於 5190 後執行 `node tests/browser.cjs`，觸控模擬加 `MOBILE=1`；`node tests/offline.cjs` 驗證成品不發出外部請求。QA 測試橋只存在於開發模式，不包含在發布 HTML。
+瀏覽器測試使用 Playwright（可自行安裝於開發環境）；啟動開發伺服器於 5190 後執行 `node tests/browser.cjs`，觸控模擬加 `MOBILE=1`，直接點物件的完整流程加 `DIRECT=1`；`node tests/offline.cjs` 驗證成品不發出外部請求。QA 測試橋只存在於開發模式，不包含在發布 HTML。
 
 此遊戲作為教學情境練習，實務作業仍依院內規範與指導。桌面與觸控模擬已測試；尚未驗證頭戴式 WebXR 或真實手機裝置。

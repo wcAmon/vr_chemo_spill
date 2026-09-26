@@ -47,10 +47,11 @@ export class Joystick extends CapturedPointer {
  protected end():void{this.surface.style.setProperty('--stick-x','0px');this.surface.style.setProperty('--stick-y','0px');this.emit(0,0);}
 }
 export class DragLook extends CapturedPointer {
- private x=0;private y=0;
- constructor(surface:HTMLElement,private emit:(dx:number,dy:number)=>void){super(surface);}
- protected start(e:PointerEvent):void{this.x=e.clientX;this.y=e.clientY;}
- protected change(e:PointerEvent):void{const dx=e.clientX-this.x,dy=e.clientY-this.y;this.x=e.clientX;this.y=e.clientY;this.emit(dx,dy);}
+ private x=0;private y=0;private startX=0;private startY=0;private started=0;private moved=false;
+ constructor(surface:HTMLElement,private emit:(dx:number,dy:number)=>void,private tap?:(x:number,y:number)=>void){super(surface);}
+ protected start(e:PointerEvent):void{this.x=this.startX=e.clientX;this.y=this.startY=e.clientY;this.started=performance.now();this.moved=false;}
+ protected change(e:PointerEvent):void{if(Math.hypot(e.clientX-this.startX,e.clientY-this.startY)>10)this.moved=true;const dx=e.clientX-this.x,dy=e.clientY-this.y;this.x=e.clientX;this.y=e.clientY;this.emit(dx,dy);}
+ protected end(e?:PointerEvent):void{if(e&&!this.moved&&performance.now()-this.started<350&&Math.hypot(e.clientX-this.startX,e.clientY-this.startY)<=10)this.tap?.(e.clientX,e.clientY);}
 }
 export function bindActionButton(button:HTMLButtonElement,action:()=>void):{reset():void;dispose():void}{
  class ActionPointer extends CapturedPointer {

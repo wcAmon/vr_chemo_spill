@@ -1,5 +1,5 @@
 import type {UniversalCamera} from '@babylonjs/core';
-export interface InputActions {action(code:string):void;pause():void;}
+export interface InputActions {action(code:string):void;pause():void;point?(x:number,y:number):void;tap?(x:number,y:number):void;}
 export interface Movement {x:number;y:number;}
 const movement=new Set(['KeyW','KeyA','KeyS','KeyD','ShiftLeft','ShiftRight']);
 export class GameInput {
@@ -9,7 +9,7 @@ export class GameInput {
  constructor(private canvas:HTMLCanvasElement,private camera:UniversalCamera,private actions:InputActions){
   window.addEventListener('keydown',this.down);window.addEventListener('keyup',this.up);window.addEventListener('blur',this.blur);
   window.addEventListener('pointermove',this.move);window.addEventListener('pointerup',this.mouseUp);window.addEventListener('orientationchange',this.reset);
-  canvas.addEventListener('pointerdown',this.mouseDown);canvas.addEventListener('contextmenu',this.context);
+  canvas.addEventListener('pointercancel',this.reset);canvas.addEventListener('lostpointercapture',this.cancelDrag);canvas.addEventListener('pointerdown',this.mouseDown);canvas.addEventListener('contextmenu',this.context);
   document.addEventListener('pointerlockchange',this.lock);document.addEventListener('visibilitychange',this.visibility);
  }
  frameKeys():ReadonlySet<string>{const keys=new Set([...this.keys,...this.pending]);this.pending.clear();return keys;}
@@ -21,7 +21,7 @@ export class GameInput {
  private reset=()=>{this.keys.clear();this.pending.clear();this.analog={x:0,y:0};this.drag=false;for(const fn of this.resets)fn();};
  setPublished(value:boolean):void{this.published=value;this.drag=false;}
  setTouchMode(touch:boolean):void{this.touchMode=touch;this.reset();if(touch)this.unlock();}
- resume(lock=true):void{this.active=true;this.canvas.focus({preventScroll:true});if(lock&&!this.touchMode)try{const request=this.canvas.requestPointerLock?.();if(request&&'catch' in request)request.catch(()=>{});}catch{}}
+ resume(lock=true):void{this.active=true;this.canvas.focus({preventScroll:true});if(lock&&!this.touchMode&&!this.published)try{const request=this.canvas.requestPointerLock?.();if(request&&'catch' in request)request.catch(()=>{});}catch{}}
  private unlock():void{if(document.pointerLockElement===this.canvas){this.ignoreUnlock=true;document.exitPointerLock();}}
  pause():void{this.active=false;this.reset();this.unlock();}
  trigger(code:string):void{
@@ -42,12 +42,13 @@ export class GameInput {
   if(['KeyF'].includes(event.code)){event.preventDefault();if(!event.repeat)this.trigger(event.code);}
  };
  private up=(e:KeyboardEvent)=>this.keys.delete(e.code);
- private mouseDown=(e:MouseEvent)=>{if(e.target!==this.canvas||!this.active||this.touchMode)return;this.canvas.focus();if(this.published){e.preventDefault();if(e.button===0){this.resume();this.trigger('MouseLeft');}return;}if(e.button===2)this.drag=true;else if(e.button===0)this.resume();};
- private mouseUp=()=>{this.drag=false;};
- private move=(e:MouseEvent)=>{if(!this.active||this.touchMode||(!this.published&&!this.drag&&document.pointerLockElement!==this.canvas))return;this.look(e.movementX*.0023,e.movementY*.0023);};
+ private mouseDown=(e:PointerEvent)=>{if(e.target!==this.canvas||!this.active||this.touchMode||e.pointerType==='touch')return;this.canvas.focus();e.preventDefault();this.actions.point?.(e.clientX,e.clientY);if(e.button===2){this.drag=true;try{this.canvas.setPointerCapture(e.pointerId);}catch{}}else if(e.button===0&&!this.drag)this.actions.tap?.(e.clientX,e.clientY);};
+ private cancelDrag=()=>{this.drag=false;};
+ private mouseUp=(e:PointerEvent)=>{if(e.button===2){this.drag=false;try{this.canvas.releasePointerCapture(e.pointerId);}catch{}}};
+ private move=(e:PointerEvent)=>{if(!this.active||this.touchMode||e.pointerType==='touch')return;if(this.drag)this.look(e.movementX*.0023,e.movementY*.0023);else if(e.target===this.canvas)this.actions.point?.(e.clientX,e.clientY);};
  private lock=()=>{if(document.pointerLockElement===this.canvas){if(!this.active||this.touchMode){this.ignoreUnlock=true;document.exitPointerLock();}else this.ignoreUnlock=false;return;}if(this.ignoreUnlock){this.ignoreUnlock=false;return;}if(this.active){this.pause();this.actions.pause();}};
  private blur=()=>{if(this.active){this.pause();this.actions.pause();}else this.reset();};
  private visibility=()=>{if(document.visibilityState==='hidden')this.blur();};
  private context=(e:Event)=>e.preventDefault();
- dispose():void{this.pause();window.removeEventListener('keydown',this.down);window.removeEventListener('keyup',this.up);window.removeEventListener('blur',this.blur);window.removeEventListener('pointermove',this.move);window.removeEventListener('pointerup',this.mouseUp);window.removeEventListener('orientationchange',this.reset);this.canvas.removeEventListener('pointerdown',this.mouseDown);this.canvas.removeEventListener('contextmenu',this.context);document.removeEventListener('pointerlockchange',this.lock);document.removeEventListener('visibilitychange',this.visibility);this.resets.clear();}
+ dispose():void{this.pause();window.removeEventListener('keydown',this.down);window.removeEventListener('keyup',this.up);window.removeEventListener('blur',this.blur);window.removeEventListener('pointermove',this.move);window.removeEventListener('pointerup',this.mouseUp);window.removeEventListener('orientationchange',this.reset);this.canvas.removeEventListener('pointercancel',this.reset);this.canvas.removeEventListener('lostpointercapture',this.cancelDrag);this.canvas.removeEventListener('pointerdown',this.mouseDown);this.canvas.removeEventListener('contextmenu',this.context);document.removeEventListener('pointerlockchange',this.lock);document.removeEventListener('visibilitychange',this.visibility);this.resets.clear();}
 }

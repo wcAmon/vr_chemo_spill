@@ -1,18 +1,33 @@
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs');
-const mobile=process.env.MOBILE==='1',out='qa/'+(mobile?'mobile':'desktop');fs.mkdirSync(out,{recursive:true});
+const direct=process.env.DIRECT==='1',mobile=process.env.MOBILE==='1',out='qa/'+(mobile?'mobile':'desktop');fs.mkdirSync(out,{recursive:true});
 (async()=>{const browser=await chromium.launch({headless:true,args:['--enable-unsafe-swiftshader']});const context=await browser.newContext({viewport:mobile?{width:430,height:932}:{width:1440,height:1000},hasTouch:mobile,isMobile:mobile});const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.addInitScript(()=>{window.speechSynthesis.speak=u=>setTimeout(()=>u.onend?.(new Event('end')),250);});
 await page.goto('http://127.0.0.1:5190/app.html?qa=1');await page.waitForFunction(()=>window.__gameQa,{timeout:60000});await page.getByRole('button',{name:'進入世界',exact:true}).click();
 const snap=()=>page.evaluate(()=>window.__gameQa.snapshot());
 const aim=async(position,point)=>{if(!mobile)await page.mouse.move(720,500);for(let n=0;n<2;n++){await page.evaluate(({position,point})=>window.__gameQa.aim(position,point),{position,point});await page.waitForTimeout(200);}};
 const aimItem=async(kind,offset=[0,0,-1.2],height=.12)=>{const i=(await snap()).items.find(i=>i.kind===kind&&i.status==='placed');assert(i,kind);await aim([i.position[0]+offset[0],0,i.position[2]+offset[2]],[i.position[0],i.position[1]+height,i.position[2]]);};
-const f=async()=>{if(mobile)await page.locator('.mobile-controls [data-key=KeyF]').click();else await page.keyboard.press('f');await page.waitForTimeout(120);};const left=async()=>{if(mobile)await page.locator('.mobile-controls [data-key=MouseLeft]').click();else await page.mouse.click(720,500);await page.waitForTimeout(120);};
+const f=async()=>{if(direct){if(mobile)await page.touchscreen.tap(215,466);else await page.mouse.click(720,500);}else if(mobile)await page.locator('.mobile-controls [data-key=KeyF]').click();else await page.keyboard.press('f');await page.waitForTimeout(120);};const left=async()=>{if(direct&&mobile)await page.touchscreen.tap(215,466);else if(mobile)await page.locator('.mobile-controls [data-key=MouseLeft]').click();else await page.mouse.click(720,500);await page.waitForTimeout(120);};
 const stage=async n=>{try{await page.waitForFunction(n=>window.__gameQa.snapshot().stage===n,n,{timeout:8000});console.log('stage',n);}catch(e){console.log(await snap());await page.screenshot({path:out+'/failure.png'});await browser.close();throw e;}};
+// Hover must not turn the camera; right drag must. Touch drag must not activate.
+const before=(await snap()).camera;
+if(!mobile){await page.mouse.move(900,350);await page.waitForTimeout(80);assert.deepEqual((await snap()).camera,before);await page.mouse.down({button:'right'});await page.mouse.move(950,380,{steps:5});await page.mouse.up({button:'right'});assert.notDeepEqual((await snap()).camera,before);assert.equal(await page.evaluate(()=>document.pointerLockElement),null);}
+else{
+ const stick=await page.locator('#look-joystick').boundingBox(),move=await page.locator('#joystick').boundingBox();
+ const cdp=await context.newCDPSession(page);const pt=(r,id,dx=0,dy=0)=>({x:r.x+r.width/2+dx,y:r.y+r.height/2+dy,id});
+ const pos=(await snap()).position;
+ await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[pt(move,1,0,-35),pt(stick,2,35,0)]});await page.waitForTimeout(500);
+ assert.notDeepEqual((await snap()).camera,before);assert.notDeepEqual((await snap()).position,pos);
+ assert.notEqual(await page.locator('#look-joystick .stick-knob').evaluate(e=>getComputedStyle(e).transform),'matrix(1, 0, 0, 1, 0, 0)');
+ await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});const stopped=(await snap()).camera;await page.waitForTimeout(200);assert.deepEqual((await snap()).camera,stopped);
+}
 assert.equal(await page.locator('textarea').count(),0);assert.equal(await page.getByRole('button',{name:/編輯|發布|背包/}).count(),0);for(const key of ['F8','F9','e','b','x','g'])await page.keyboard.press(key);assert.equal((await snap()).panel,'none');
 await aimItem('chemo-spill-kit',[-1.1,0,0],.12);await f();await page.getByRole('heading',{name:'化療潑灑處理包',exact:true}).waitFor();await page.getByRole('button',{name:'繼續遊戲'}).click();
 await aimItem('supply-table',[1.2,0,0],.7);await page.keyboard.press('f');assert.equal((await snap()).panel,'none');assert(!/F/.test(await page.locator('#object-hint').innerText()));
-await aimItem('training-console',[0,0,-1.3],.94);await page.locator('#console-bubble').waitFor({state:'visible'});await page.screenshot({path:out+'/start.png'});await f();await stage(1);await page.locator('#console-bubble').waitFor({state:'hidden'});
+await aimItem('training-console',[0,0,-1.3],.94);await page.locator('#console-bubble').waitFor({state:'visible'});await page.screenshot({path:out+'/start.png'});
+if(direct&&mobile){const cdp=await context.newCDPSession(page);await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:215,y:466,id:7}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:285,y:466,id:7}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});assert.equal((await snap()).stage,0);await aimItem('training-console',[0,0,-1.3],.94);await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:215,y:466,id:7}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]});assert.equal((await snap()).stage,0);}
+if(direct&&!mobile){assert.equal(await page.locator('.mouse-left-icon').count(),1);assert((await page.locator('#object-hint').innerText()).includes('左鍵 開始計時'));}
+await f();await stage(1);await page.locator('#console-bubble').waitFor({state:'hidden'});
 const bag=(await snap()).items.find(i=>i.kind==='chemo-iv-bag');await aim([bag.position[0]+2,0,bag.position[2]+1.6],[bag.position[0],.7,bag.position[2]]);await page.waitForTimeout(1300);await page.screenshot({path:out+'/spill.png'});console.log('spill', (await snap()).effects);
-await aimItem('megaphone',[1.2,0,0],.23);await f();await left();await stage(2);await page.waitForFunction(()=>document.getElementById('object-hint').textContent.includes('左鍵 放下麥克風'));assert.equal((await snap()).held,'megaphone');await left();assert.equal((await snap()).held,undefined);
+await aimItem('megaphone',[1.2,0,0],.23);await f();await left();await stage(2);await page.waitForFunction(()=>document.getElementById('object-hint').textContent.includes('放下麥克風'));assert.equal((await snap()).held,'megaphone');await left();assert.equal((await snap()).held,undefined);
 await aimItem('spill-warning-sign',[1.2,0,0],.045);await f();let p=(await snap()).signTarget;await aim([p[0]+1,0,p[2]],p);await left();await stage(3);
 await aimItem('ppe-set',[0,0,-1.1],.08);await f();await left();await stage(4);
 await aimItem('chemo-spill-kit',[-1.1,0,0],.12);await f();await page.waitForFunction(()=>window.__gameQa.snapshot().padId);await page.waitForTimeout(400);await page.screenshot({path:out+'/kit.png'});

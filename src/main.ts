@@ -33,28 +33,41 @@ async function boot(){
  const doc=new GameDocument(structuredClone(world) as WorldState);let game=new PublishedGame(doc);
  const view=new GameView(scene,figure,player.hands),models=new Map<string,GameModel>(),actions=new Map<string,ObjectAction>(),pending=new Set<string>();
  let panel='entry',target:string|null=null,busy=false,generation=0,broadcastId:string|null=null,broadcastTime=0,toastTimer=0;
- let mobile:MobileControls;
- const toast=(message:string)=>{el('toast').textContent=message;el('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=window.setTimeout(()=>el('toast').classList.remove('show'),3000);};
+ let mobile:MobileControls;let pointer:{x:number;y:number}|null=null;
+ const toast=(message:string)=>{el('toast').textContent=input.touchMode?message.replace(/按滑鼠左鍵|按左鍵|左鍵/g,'點選'):message;el('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=window.setTimeout(()=>el('toast').classList.remove('show'),3000);};
  const stopBroadcast=()=>{if(broadcastId){actions.get(broadcastId)?.reset();broadcastId=null;if(typeof speechSynthesis!=='undefined')speechSynthesis.cancel();}};
  const close=()=>{if(busy)return;panel='none';el('overlay').hidden=true;document.documentElement.dataset.menu='false';scene.physicsEnabled=true;game.mission.pause(false);input.resume(true);mobile?.setActive(true);if(broadcastId&&typeof speechSynthesis!=='undefined')speechSynthesis.resume();};
  const open=(type:string,id?:string)=>{
   panel=type;input.pause();mobile?.setActive(false);scene.physicsEnabled=false;game.mission.pause(true);document.documentElement.dataset.menu='true';el('overlay').hidden=false;
   if(broadcastId&&typeof speechSynthesis!=='undefined')speechSynthesis.pause();
   const title=type==='entry'?'化療藥物潑灑處理':type==='complete'?'五站完成，過關！':type==='object'?catalogItem(doc.item(id!)!.kind).name:'暫停';el('panel-title').textContent=title;el('panel-body').replaceChildren();el('panel-actions').replaceChildren();
-  const text=type==='entry'?'你可以自由查看各站的物品閱讀各站說明。準備好後，對準中間啟動台按 F 開始計時。依序完成通報、警示、防護、清理與廢棄物處理。':type==='complete'?'完成時間 '+formatTime(game.mission.elapsed):type==='object'?catalogItem(doc.item(id!)!.kind).description:'計時已暫停。';
+  const text=type==='entry'?'你可以自由查看各站的物品閱讀各站說明。準備好後，點選中間啟動台開始計時。依序完成通報、警示、防護、清理與廢棄物處理。':type==='complete'?'完成時間 '+formatTime(game.mission.elapsed):type==='object'?catalogItem(doc.item(id!)!.kind).description:'計時已暫停。';
   const p=document.createElement('p');p.textContent=text;el('panel-body').append(p);
   const button=(label:string,action:()=>void)=>{const b=document.createElement('button');b.textContent=label;b.onclick=action;el('panel-actions').append(b);};
   button(type==='entry'?'進入世界':type==='complete'?'繼續參觀':'繼續遊戲',close);
   if(type!=='entry'&&type!=='object')button('重新開始',()=>void restart());
   if(type==='entry'){const note=document.createElement('small');note.textContent='教學情境遊戲；實務操作依院內規範與指導。';el('panel-body').append(note);}
  };
- const refreshTarget=()=>{const hit=scene.pickWithRay(camera.getForwardRay(4),m=>visiblePickable(m)&&m.metadata?.gameItem!==doc.held?.id&&!m.metadata?.trainingAvatar);target=hit&&hit.distance<=3?hit.pickedMesh?.metadata?.gameItem??null:null;};
+ const pick=(center=false)=>{const predicate=(m:import('@babylonjs/core').AbstractMesh)=>visiblePickable(m)&&m.metadata?.gameItem!==doc.held?.id&&!m.metadata?.trainingAvatar;
+  if(center||!pointer||input.touchMode)return scene.pickWithRay(camera.getForwardRay(4),predicate);
+  const r=canvas.getBoundingClientRect();return scene.pick((pointer.x-r.left)*engine.getRenderWidth()/r.width,(pointer.y-r.top)*engine.getRenderHeight()/r.height,predicate,false,camera);
+ };
+ const refreshTarget=()=>{const hit=pick();target=hit&&hit.distance<=3?hit.pickedMesh?.metadata?.gameItem??null:null;};
+ const activate=(hit:ReturnType<typeof pick>)=>{
+  if(busy||panel!=='none')return;
+  const id=hit&&hit.distance<=3?hit.pickedMesh?.metadata?.gameItem:null;
+  const held=doc.held,position=player.position.asArray() as Vec3;
+  if(held){if(['spill-warning-sign','absorbent-pad','filled-waste-bag'].includes(held.kind)){if(hit?.pickedPoint&&hit.distance<=3)handle(game.place(hit.pickedPoint.asArray() as Vec3,position));else toast('請靠近並點選發光的指定位置');}else handle(game.use(held.id,position));return;}
+  if(!id)return;const i=doc.item(id);if(!i)return;
+  if(i.kind==='training-console'||i.kind==='chemo-spill-kit'&&game.mission.stage===4&&!game.kitOpen)handle(game.use(id,position));else if(game.canTake(id))handle(game.take(id,position));else if(canReadPublished(i.kind))open('object',id);
+ };
+ const tap=(x:number,y:number)=>{if(!input.active)return;pointer={x,y};const r=canvas.getBoundingClientRect();const hit=scene.pick((x-r.left)*engine.getRenderWidth()/r.width,(y-r.top)*engine.getRenderHeight()/r.height,m=>visiblePickable(m)&&m.metadata?.gameItem!==doc.held?.id&&!m.metadata?.trainingAvatar,false,camera);activate(hit);};
  const handle=(result:GameResult)=>{
   toast(result.message);if(!result.ok)return;const id=result.id;
   if(result.effect==='start')for(const i of doc.state.items)if(i.kind==='chemo-iv-bag'||i.kind==='training-console')actions.get(i.id)?.start();
   if((result.effect==='unfold'||result.effect==='open-kit')&&id){actions.get(id)?.start();if(result.effect==='open-kit')scene.getMeshByName(id+'/ejected-pad')?.setEnabled(false);}
   if(result.effect==='broadcast'&&id){stopBroadcast();actions.get(id)?.start();broadcastId=id;broadcastTime=0;const current=game;
-   const finish=()=>{if(game!==current||broadcastId!==id)return;game.broadcastFinished=true;stopBroadcast();toast('廣播播放完畢 · 按左鍵放下麥克風');};
+   const finish=()=>{if(game!==current||broadcastId!==id)return;game.broadcastFinished=true;stopBroadcast();toast('廣播播放完畢 · 點選「放下麥克風」或按左鍵放下');};
    if(typeof speechSynthesis!=='undefined'&&typeof SpeechSynthesisUtterance!=='undefined'){const utterance=new SpeechSynthesisUtterance(BROADCAST);utterance.lang='zh-TW';utterance.onend=finish;utterance.onerror=finish;speechSynthesis.speak(utterance);}
   }
   if(result.effect==='clean')for(const i of doc.state.items)if(i.kind==='chemo-iv-bag')actions.get(i.id)?.reset();
@@ -64,15 +77,15 @@ async function boot(){
    const animate=()=>{if(token!==generation){scene.unregisterBeforeRender(animate);thrown.dispose();return;}if(panel!=='none')return;elapsed+=Math.min(.05,engine.getDeltaTime()/1000);const t=Math.min(1,elapsed/.6);thrown.root.position.copyFrom(Vector3.Lerp(from,to,t));thrown.root.position.y+=Math.sin(Math.PI*t)*.35;thrown.root.rotation.y=t*Math.PI;if(t===1){scene.unregisterBeforeRender(animate);thrown.dispose();open('complete');}};scene.registerBeforeRender(animate);
   }
  };
- const input=new GameInput(canvas,camera,{pause:()=>open('pause'),action:code=>{
-  if(busy)return;if(panel!=='none'){if(code==='Escape')close();return;}refreshTarget();
-  if(code==='KeyF'&&!doc.held&&target){const i=doc.item(target)!;if(i.kind==='training-console'||i.kind==='chemo-spill-kit'&&game.mission.stage===4&&!game.kitOpen)handle(game.use(target,player.position.asArray() as Vec3));else if(game.canTake(target))handle(game.take(target,player.position.asArray() as Vec3));else if(canReadPublished(i.kind))open('object',target);}
-  if(code==='MouseLeft'&&doc.held){if(['spill-warning-sign','absorbent-pad','filled-waste-bag'].includes(doc.held.kind)){const hit=scene.pickWithRay(camera.getForwardRay(4),m=>visiblePickable(m)&&m.metadata?.gameItem!==doc.held?.id&&!m.metadata?.trainingAvatar);if(hit?.pickedPoint)handle(game.place(hit.pickedPoint.asArray() as Vec3,player.position.asArray() as Vec3));else toast('請對準發光的指定位置');}else handle(game.use(doc.held.id,player.position.asArray() as Vec3));}
- }});input.setPublished(true);mobile=new MobileControls(canvas,input);
+ const input=new GameInput(canvas,camera,{pause:()=>open('pause'),point:(x,y)=>{pointer={x,y};},tap,action:code=>{
+  if(busy)return;if(panel!=='none'){if(code==='Escape')close();return;}
+  if(code==='KeyF'&&!doc.held)activate(pick(true));
+  if(code==='MouseLeft')activate(pick());
+ }});input.setPublished(true);mobile=new MobileControls(canvas,input,tap);
  const load=async()=>{for(const item of doc.state.items){if(item.status==='backpack'||models.has(item.id)||pending.has(item.id))continue;pending.add(item.id);const token=generation;try{const model=await createGameModel(scene,item);if(token!==generation){model.dispose();continue;}models.set(item.id,model);const action=createObjectAction(scene,model,item.kind);if(action)actions.set(item.id,action);}finally{pending.delete(item.id);}}};
  const restart=async()=>{busy=true;open('loading');el('panel-title').textContent='正在重新開始';generation++;stopBroadcast();for(const a of actions.values())a.dispose();actions.clear();for(const m of models.values())m.dispose();models.clear();pending.clear();doc.state=structuredClone(world) as WorldState;game=new PublishedGame(doc);player.reset(new Vector3(0,0,-3.5));camera.rotation.set(.16,0,0);await load();view.update(game);busy=false;close();};
  scene.onBeforePhysicsObservable.add(()=>{
-  const dt=1/60;if(broadcastId){broadcastTime+=dt;if(broadcastTime>8&&(typeof speechSynthesis==='undefined'||!speechSynthesis.speaking)){game.broadcastFinished=true;stopBroadcast();toast('廣播播放完畢 · 按左鍵放下麥克風');}}
+  const dt=1/60;if(broadcastId){broadcastTime+=dt;if(broadcastTime>8&&(typeof speechSynthesis==='undefined'||!speechSynthesis.speaking)){game.broadcastFinished=true;stopBroadcast();toast('廣播播放完畢 · 點選「放下麥克風」或按左鍵放下');}}
   for(const a of actions.values())a.tick(dt);mobile.tick(dt);player.setMovement(input.frameMovement(),input.running);player.tick(dt,camera.getForwardRay().direction);camera.position.copyFrom(player.eye);
   for(const model of models.values()){
    const item=doc.item(model.itemId)!;model.model.root.setEnabled(item.status!=='backpack');
@@ -93,14 +106,17 @@ async function boot(){
  scene.onAfterRenderObservable.add(()=>{
   if(busy)return;refreshTarget();view.update(game);if(game.padId&&!models.has(game.padId)&&!pending.has(game.padId))void load().catch(e=>toast(String(e)));
   el('mission-step').textContent=game.mission.stage===0?'自由參觀':game.mission.stage===6?'任務完成':`第 ${game.mission.stage} / 5 站`;
-  el('mission-task').textContent=game.mission.stage===2&&doc.held?.kind==='megaphone'?(game.broadcastFinished?'廣播播放完畢 · 左鍵放下麥克風，再前往第二站':'廣播播放中 · 播放完請放下麥克風'):STATIONS[game.mission.stage];
-  el('mission-time').textContent=(game.mission.stage===6?'完成時間 ':'計時 ')+formatTime(game.mission.elapsed);el('object-hint').textContent=publishedHint(game,target);
+  el('mission-task').textContent=game.mission.stage===2&&doc.held?.kind==='megaphone'?(game.broadcastFinished?'廣播播放完畢 · 點選放下麥克風，再前往第二站':'廣播播放中 · 播放完請放下麥克風'):STATIONS[game.mission.stage];
+  el('mission-time').textContent=(game.mission.stage===6?'完成時間 ':'計時 ')+formatTime(game.mission.elapsed);const hint=el('object-hint');const label=publishedHint(game,target).replace(/F /g,'左鍵 ').replace(/左鍵/g,input.touchMode?'輕點':'左鍵');hint.replaceChildren();
+  if(label){if(!input.touchMode&&label.includes('左鍵')){const icon=document.createElement('span');icon.className='mouse-left-icon';icon.setAttribute('aria-hidden','true');hint.append(icon);}hint.append(document.createTextNode(label));}
+  hint.classList.toggle('pointer-hint',!input.touchMode&&!!pointer);if(!input.touchMode&&pointer){hint.style.left=`${Math.max(100,Math.min(innerWidth-160,pointer.x+16))}px`;hint.style.top=`${Math.max(20,Math.min(innerHeight-100,pointer.y+26))}px`;}else{hint.style.left='';hint.style.top='';}
+  if(input.touchMode)el('mission-task').textContent=el('mission-task').textContent?.replace(/左鍵/g,'點選')??'';
   const i=doc.item(target??''),canF=!doc.held&&!!i&&(i.kind==='training-console'||canReadPublished(i.kind));
   mobile.update(canF,i?.kind==='training-console'?'啟動':i&&game.canTake(i.id)?'拿起':'開啟／說明',!!doc.held,game.broadcastFinished&&doc.held?.kind==='megaphone'?'放下麥克風':['absorbent-pad','spill-warning-sign'].includes(doc.held?.kind??'')?'放到標誌':doc.held?.kind==='filled-waste-bag'?'投入':'使用');
   const bubble=el('console-bubble'),consoleItem=game.mission.stage===0?game.item('training-console'):null;bubble.hidden=true;
   if(consoleItem&&panel==='none'){const point=Vector3.FromArray(consoleItem.position).add(new Vector3(0,1.15,0));if(Vector3.Dot(point.subtract(camera.position),camera.getForwardRay().direction)>0){const screen=Vector3.Project(point,Matrix.Identity(),scene.getTransformMatrix(),camera.viewport.toGlobal(engine.getRenderWidth(),engine.getRenderHeight()));bubble.hidden=screen.z<0||screen.z>1;bubble.style.left=`${screen.x/engine.getRenderWidth()*100}%`;bubble.style.top=`${screen.y/engine.getRenderHeight()*100}%`;}}
  });
  await load();open('entry');engine.runRenderLoop(()=>scene.render());window.addEventListener('resize',()=>engine.resize());document.addEventListener('visibilitychange',()=>{if(document.hidden&&panel==='none')open('pause');});
- if(import.meta.env.DEV&&location.search.includes('qa=1'))Object.assign(window,{__gameQa:{snapshot:()=>({effects:scene.meshes.filter(m=>m.name.endsWith('/spill')).map(m=>({name:m.name,position:m.position.asArray(),bounds:m.getBoundingInfo().boundingBox.extendSize.asArray(),enabled:m.isEnabled()})),active:input.active,panel,target,held:doc.held?.kind,stage:game.mission.stage,items:doc.snapshot().items,signTarget:game.signTarget,cleanTarget:game.cleanTarget,binTarget:game.binTarget,padId:game.padId,gloves:game.gloves}),aim:(position:Vec3,point:Vec3)=>{player.reset(Vector3.FromArray(position));camera.position.copyFrom(player.eye);camera.setTarget(Vector3.FromArray(point));},input:(code:string)=>input.trigger(code)}});
+ if(import.meta.env.DEV&&location.search.includes('qa=1'))Object.assign(window,{__gameQa:{snapshot:()=>({effects:scene.meshes.filter(m=>m.name.endsWith('/spill')).map(m=>({name:m.name,position:m.position.asArray(),bounds:m.getBoundingInfo().boundingBox.extendSize.asArray(),enabled:m.isEnabled()})),active:input.active,camera:camera.rotation.asArray(),position:player.position.asArray(),panel,target,held:doc.held?.kind,stage:game.mission.stage,items:doc.snapshot().items,signTarget:game.signTarget,cleanTarget:game.cleanTarget,binTarget:game.binTarget,padId:game.padId,gloves:game.gloves}),aim:(position:Vec3,point:Vec3)=>{player.reset(Vector3.FromArray(position));camera.position.copyFrom(player.eye);camera.setTarget(Vector3.FromArray(point));},input:(code:string)=>input.trigger(code)}});
 }
 void boot().catch(error=>{el('panel-title').textContent='無法啟動遊戲';el('panel-body').textContent=String(error);const b=document.createElement('button');b.textContent='重新載入';b.onclick=()=>location.reload();el('panel-actions').append(b);});
